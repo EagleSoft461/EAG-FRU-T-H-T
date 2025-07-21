@@ -1,7 +1,7 @@
-<!DOCTYPE html><html lang="tr">
+<!DOCTYPE html>
+<html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EAG FRUİT HİT</title>
   <style>
     html, body {
@@ -49,71 +49,50 @@
       justify-content: space-around;
       flex-wrap: wrap;
     }
-    .controls button {
-      font-size: 24px;
-      padding: 20px;
-      width: 80px;
-      height: 80px;
-    }
   </style>
 </head>
-<body>  <div id="mainMenu" class="menu active">
+<body>
+
+  <div id="mainMenu" class="menu active">
     <h1>🍎 EAG FRUİT HİT 🍌</h1>
     <button onclick="startGame()">🎮 Oyuna Başla</button>
     <button onclick="openSettings()">⚙ Ayarlar</button>
-  </div>  <div id="settingsMenu" class="settings">
+  </div>
+
+  <div id="settingsMenu" class="settings">
     <h2>⚙ Ayarlar</h2>
     <button onclick="toggleFullscreen()">⛶ Tam Ekran</button>
     <br>
     <button onclick="closeSettings()">⬅ Geri</button>
-  </div>  <p id="timer" style="display:none">⏱ Süre: 60</p>
-  <canvas id="gameCanvas"></canvas>  <div class="controls">
+  </div>
+
+  <p id="timer" style="display:none">⏱ Süre: 60</p>
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+  <div class="controls">
     <div>
-      <button id="btnA">A</button>
-      <button id="btnD">D</button>
-      <button id="btnW">🔫</button>
+      <button ontouchstart="keysPressed['a'] = true" ontouchend="keysPressed['a'] = false">A</button>
+      <button ontouchstart="keysPressed['d'] = true" ontouchend="keysPressed['d'] = false">D</button>
+      <button ontouchstart="keysPressed['w'] = true" ontouchend="keysPressed['w'] = false">🔫</button>
     </div>
     <div>
-      <button id="btnLeft">←</button>
-      <button id="btnRight">→</button>
-      <button id="btnUp">🔫</button>
+      <button ontouchstart="keysPressed['ArrowLeft'] = true" ontouchend="keysPressed['ArrowLeft'] = false">←</button>
+      <button ontouchstart="keysPressed['ArrowRight'] = true" ontouchend="keysPressed['ArrowRight'] = false">→</button>
+      <button ontouchstart="keysPressed['ArrowUp'] = true" ontouchend="keysPressed['ArrowUp'] = false">🔫</button>
     </div>
-  </div>  <div id="gameOverScreen" class="game-over">
+  </div>
+
+  <div id="gameOverScreen" class="game-over">
     <h1 id="resultText">🏑 Oyun Bitti!</h1>
     <button onclick="restartGame()">🔁 Yeniden Oyna</button>
-  </div>  <script>
-    const keysPressed = {
-      'a': false,
-      'd': false,
-      'w': false,
-      'ArrowLeft': false,
-      'ArrowRight': false,
-      'ArrowUp': false
-    };
+  </div>
 
-    function setupButton(id, key) {
-      const btn = document.getElementById(id);
-      btn.addEventListener("touchstart", e => { e.preventDefault(); keysPressed[key] = true; });
-      btn.addEventListener("touchend", e => { e.preventDefault(); keysPressed[key] = false; });
-      btn.addEventListener("mousedown", () => keysPressed[key] = true);
-      btn.addEventListener("mouseup", () => keysPressed[key] = false);
-      btn.addEventListener("mouseleave", () => keysPressed[key] = false);
-    }
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let popSound, winSound;
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const canvas = document.getElementById("gameCanvas");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const ctx = canvas.getContext("2d");
-
-      setupButton("btnA", "a");
-      setupButton("btnD", "d");
-      setupButton("btnW", "w");
-      setupButton("btnLeft", "ArrowLeft");
-      setupButton("btnRight", "ArrowRight");
-      setupButton("btnUp", "ArrowUp");
-
-      let popSound, winSound;
+    document.addEventListener('DOMContentLoaded', () => {
       try {
         popSound = new Audio('pop.mp3');
         winSound = new Audio('win.mp3');
@@ -122,192 +101,203 @@
         popSound = { play: () => {} };
         winSound = { play: () => {} };
       }
+    });
 
-      let timeLeft = 60;
-      const timerText = document.getElementById("timer");
+    let timeLeft = 60;
+    const timerText = document.getElementById("timer");
 
-      const players = [
-        { x: 200, color: "red", keys: { left: "a", right: "d", shoot: "w" }, bullets: [], score: 0 },
-        { x: 600, color: "blue", keys: { left: "ArrowLeft", right: "ArrowRight", shoot: "ArrowUp" }, bullets: [], score: 0 }
-      ];
+    const players = [
+      { x: 200, color: "red", keys: { left: "a", right: "d", shoot: "w" }, bullets: [], score: 0 },
+      { x: 600, color: "blue", keys: { left: "ArrowLeft", right: "ArrowRight", shoot: "ArrowUp" }, bullets: [], score: 0 }
+    ];
 
-      const fruits = [];
-      const bulletsSpeed = 6;
-      const playerY = canvas.height - 50;
-      const tableY = canvas.height - 70;
+    const fruits = [];
+    const bulletsSpeed = 6;
+    const playerY = 450;
+    const tableY = 430;
 
-      const fruitTypes = [
-        { name: "elma", color: "lime", point: 1 },
-        { name: "muz", color: "yellow", point: 2 },
-        { name: "portakal", color: "orange", point: 3 }
-      ];
+    const fruitTypes = [
+      { name: "elma", color: "lime", point: 1 },
+      { name: "muz", color: "yellow", point: 2 },
+      { name: "portakal", color: "orange", point: 3 }
+    ];
 
-      let gameRunning = false;
-      let countdownInterval;
+    let gameRunning = false;
+    let countdownInterval;
 
-      function startGame() {
-        document.getElementById("mainMenu").classList.remove("active");
-        document.getElementById("settingsMenu").classList.remove("active");
-        canvas.style.display = "block";
-        timerText.style.display = "block";
-        gameRunning = true;
-        countdown();
-        setInterval(spawnFruit, 1000);
-        setInterval(controlPlayers, 30);
-        updateGame();
-      }
+    function startGame() {
+      document.getElementById("mainMenu").classList.remove("active");
+      document.getElementById("settingsMenu").classList.remove("active");
+      canvas.style.display = "block";
+      timerText.style.display = "block";
+      gameRunning = true;
+      countdown();
+      setInterval(spawnFruit, 1000);
+      setInterval(controlPlayers, 30);
+      updateGame();
+    }
 
-      function openSettings() {
-        document.getElementById("mainMenu").classList.remove("active");
-        document.getElementById("settingsMenu").classList.add("active");
-      }
+    function openSettings() {
+      document.getElementById("mainMenu").classList.remove("active");
+      document.getElementById("settingsMenu").classList.add("active");
+    }
 
-      function closeSettings() {
-        document.getElementById("settingsMenu").classList.remove("active");
-        document.getElementById("mainMenu").classList.add("active");
-      }
+    function closeSettings() {
+      document.getElementById("settingsMenu").classList.remove("active");
+      document.getElementById("mainMenu").classList.add("active");
+    }
 
-      function toggleFullscreen() {
-        if (document.fullscreenEnabled) {
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => console.warn("Fullscreen hatası:", err));
-          } else {
-            document.exitFullscreen();
-          }
+    function toggleFullscreen() {
+      if (document.fullscreenEnabled) {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => console.warn("Fullscreen hatası:", err));
         } else {
-          alert("Tarayıcınız tam ekran modunu desteklemiyor.");
+          document.exitFullscreen();
         }
+      } else {
+        alert("Tarayıcınız tam ekran modunu desteklemiyor.");
       }
+    }
 
-      function spawnFruit() {
-        if (!gameRunning) return;
-        const fruit = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
-        const x = Math.random() * (canvas.width - 30);
-        fruits.push({ x: x, y: 50, w: 30, h: 30, type: fruit });
-      }
+    function spawnFruit() {
+      if (!gameRunning) return;
+      const fruit = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+      const x = Math.random() * (canvas.width - 30);
+      fruits.push({ x: x, y: 50, w: 30, h: 30, type: fruit });
+    }
 
-      function drawPlayers() {
-        players.forEach(p => {
-          ctx.fillStyle = p.color;
-          ctx.fillRect(p.x, playerY, 30, 30);
-        });
-      }
+    function drawPlayers() {
+      players.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, playerY, 30, 30);
+      });
+    }
 
-      function drawBullets() {
-        players.forEach(p => {
-          ctx.fillStyle = "white";
-          p.bullets.forEach(b => ctx.fillRect(b.x, b.y, 5, 10));
-        });
-      }
-
-      function drawFruits() {
-        fruits.forEach(f => {
-          ctx.fillStyle = f.type.color;
-          ctx.beginPath();
-          ctx.arc(f.x + 15, f.y + 15, 15, 0, Math.PI * 2);
-          ctx.fill();
-        });
-      }
-
-      function drawTable() {
-        ctx.fillStyle = "#654321";
-        ctx.fillRect(0, tableY, canvas.width, 20);
-      }
-
-      function drawScores() {
+    function drawBullets() {
+      players.forEach(p => {
         ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
-        ctx.fillText("Oyuncu 1 Skor: " + players[0].score, 10, 25);
-        ctx.fillText("Oyuncu 2 Skor: " + players[1].score, canvas.width - 220, 25);
-      }
-
-      function updateGame() {
-        if (!gameRunning) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawTable();
-        drawPlayers();
-        drawBullets();
-        drawFruits();
-        drawScores();
-
-        players.forEach(p => {
-          p.bullets.forEach(b => b.y -= bulletsSpeed);
-          p.bullets = p.bullets.filter(b => b.y > 0);
+        p.bullets.forEach(b => {
+          ctx.fillRect(b.x, b.y, 5, 10);
         });
+      });
+    }
 
-        players.forEach(p => {
-          p.bullets.forEach(bullet => {
-            fruits.forEach((fruit, index) => {
-              if (
-                bullet.x < fruit.x + fruit.w &&
-                bullet.x + 5 > fruit.x &&
-                bullet.y < fruit.y + fruit.h &&
-                bullet.y + 10 > fruit.y
-              ) {
-                p.score += fruit.type.point;
-                fruits.splice(index, 1);
-                bullet.y = -20;
+    function drawFruits() {
+      fruits.forEach(f => {
+        ctx.fillStyle = f.type.color;
+        ctx.beginPath();
+        ctx.arc(f.x + 15, f.y + 15, 15, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawTable() {
+      ctx.fillStyle = "#654321";
+      ctx.fillRect(0, tableY, canvas.width, 20);
+    }
+
+    function drawScores() {
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText("Oyuncu 1 Skor: " + players[0].score, 10, 25);
+      ctx.fillText("Oyuncu 2 Skor: " + players[1].score, 600, 25);
+    }
+
+    function updateGame() {
+      if (!gameRunning) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawTable();
+      drawPlayers();
+      drawBullets();
+      drawFruits();
+      drawScores();
+
+      players.forEach(p => {
+        p.bullets.forEach(b => b.y -= bulletsSpeed);
+        p.bullets = p.bullets.filter(b => b.y > 0);
+      });
+
+      players.forEach(p => {
+        p.bullets.forEach(bullet => {
+          fruits.forEach((fruit, index) => {
+            if (
+              bullet.x < fruit.x + fruit.w &&
+              bullet.x + 5 > fruit.x &&
+              bullet.y < fruit.y + fruit.h &&
+              bullet.y + 10 > fruit.y
+            ) {
+              p.score += fruit.type.point;
+              fruits.splice(index, 1);
+              bullet.y = -20;
+              if (popSound && popSound.play) {
                 popSound.currentTime = 0;
-                popSound.play();
+                popSound.play().catch(() => {});
               }
-            });
+            }
           });
         });
+      });
 
-        requestAnimationFrame(updateGame);
+      requestAnimationFrame(updateGame);
+    }
+
+    const keysPressed = {};
+    document.addEventListener("keydown", e => keysPressed[e.key] = true);
+    document.addEventListener("keyup", e => keysPressed[e.key] = false);
+
+    function controlPlayers() {
+      if (!gameRunning) return;
+      if (keysPressed[players[0].keys.left]) players[0].x -= 4;
+      if (keysPressed[players[0].keys.right]) players[0].x += 4;
+      if (keysPressed[players[0].keys.shoot]) shoot(players[0]);
+
+      if (keysPressed[players[1].keys.left]) players[1].x -= 4;
+      if (keysPressed[players[1].keys.right]) players[1].x += 4;
+      if (keysPressed[players[1].keys.shoot]) shoot(players[1]);
+    }
+
+    function shoot(player) {
+      if (!player.lastShot || Date.now() - player.lastShot > 400) {
+        player.bullets.push({ x: player.x + 12, y: playerY });
+        player.lastShot = Date.now();
       }
+    }
 
-      document.addEventListener("keydown", e => keysPressed[e.key] = true);
-      document.addEventListener("keyup", e => keysPressed[e.key] = false);
-
-      function controlPlayers() {
-        if (!gameRunning) return;
-        if (keysPressed[players[0].keys.left]) players[0].x -= 4;
-        if (keysPressed[players[0].keys.right]) players[0].x += 4;
-        if (keysPressed[players[0].keys.shoot]) shoot(players[0]);
-
-        if (keysPressed[players[1].keys.left]) players[1].x -= 4;
-        if (keysPressed[players[1].keys.right]) players[1].x += 4;
-        if (keysPressed[players[1].keys.shoot]) shoot(players[1]);
-      }
-
-      function shoot(player) {
-        if (!player.lastShot || Date.now() - player.lastShot > 400) {
-          player.bullets.push({ x: player.x + 12, y: playerY });
-          player.lastShot = Date.now();
+    function countdown() {
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        timerText.textContent = `⏱ Süre: ${timeLeft}`;
+        if (timeLeft <= 0) {
+          clearInterval(countdownInterval);
+          endGame();
         }
+      }, 1000);
+    }
+
+    function endGame() {
+      gameRunning = false;
+      canvas.style.display = "none";
+      timerText.style.display = "none";
+      document.getElementById("gameOverScreen").classList.add("active");
+
+      if (winSound && winSound.play) {
+        winSound.play().catch(() => {});
       }
 
-      function countdown() {
-        countdownInterval = setInterval(() => {
-          timeLeft--;
-          timerText.textContent = `⏱ Süre: ${timeLeft}`;
-          if (timeLeft <= 0) {
-            clearInterval(countdownInterval);
-            endGame();
-          }
-        }, 1000);
-      }
+      let p1 = players[0].score;
+      let p2 = players[1].score;
+      const result = document.getElementById("resultText");
 
-      function endGame() {
-        gameRunning = false;
-        canvas.style.display = "none";
-        timerText.style.display = "none";
-        document.getElementById("gameOverScreen").classList.add("active");
-        winSound.play();
+      if (p1 > p2) result.textContent = `🎉 Oyuncu 1 Kazandı! Skor: ${p1}`;
+      else if (p2 > p1) result.textContent = `🎉 Oyuncu 2 Kazandı! Skor: ${p2}`;
+      else result.textContent = `🤝 Berabere! Skor: ${p1}`;
+    }
 
-        let p1 = players[0].score;
-        let p2 = players[1].score;
-        const result = document.getElementById("resultText");
-
-        if (p1 > p2) result.textContent = `🎉 Oyuncu 1 Kazandı! Skor: ${p1}`;
-        else if (p2 > p1) result.textContent = `🎉 Oyuncu 2 Kazandı! Skor: ${p2}`;
-        else result.textContent = `🤝 Berabere! Skor: ${p1}`;
-      }
-
-      function restartGame() {
-        location.reload();
-      }
-    });
-  </script></body>
+    function restartGame() {
+      location.reload();
+    }
+  </script>
+</body>
 </html>
+
