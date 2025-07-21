@@ -81,7 +81,9 @@
   </div>  <div id="gameOverScreen" class="game-over">
     <h1 id="resultText">🏑 Oyun Bitti!</h1>
     <button onclick="restartGame()">🔁 Yeniden Oyna</button>
-  </div>  <script>
+  </div>  
+  <script>
+    const keysPressed = {};
     document.addEventListener("DOMContentLoaded", () => {
       const canvas = document.getElementById("gameCanvas");
       canvas.width = window.innerWidth;
