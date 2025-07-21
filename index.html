@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>EAG FRUİT HİT</title>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
       overflow: hidden;
       background: #111;
       color: white;
@@ -21,6 +19,7 @@
       margin: auto;
       border: 4px solid lime;
       max-width: 100%;
+      height: auto;
     }
     .menu, .game-over, .settings {
       display: none;
@@ -37,6 +36,8 @@
       border-radius: 10px;
       cursor: pointer;
       margin: 10px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
     #timer {
       font-size: 24px;
@@ -48,6 +49,11 @@
       display: flex;
       justify-content: space-around;
       flex-wrap: wrap;
+      user-select: none;
+    }
+    .controls div {
+      display: flex;
+      gap: 10px;
     }
   </style>
 </head>
@@ -55,15 +61,15 @@
 
   <div id="mainMenu" class="menu active">
     <h1>🍎 EAG FRUİT HİT 🍌</h1>
-    <button onclick="startGame()">🎮 Oyuna Başla</button>
-    <button onclick="openSettings()">⚙ Ayarlar</button>
+    <button id="btnStart">🎮 Oyuna Başla</button>
+    <button id="btnSettings">⚙ Ayarlar</button>
   </div>
 
   <div id="settingsMenu" class="settings">
     <h2>⚙ Ayarlar</h2>
-    <button onclick="toggleFullscreen()">⛶ Tam Ekran</button>
-    <br>
-    <button onclick="closeSettings()">⬅ Geri</button>
+    <button id="btnFullscreen">⛶ Tam Ekran</button>
+    <br />
+    <button id="btnBack">⬅ Geri</button>
   </div>
 
   <p id="timer" style="display:none">⏱ Süre: 60</p>
@@ -71,41 +77,38 @@
 
   <div class="controls">
     <div>
-      <button ontouchstart="keysPressed['a'] = true" ontouchend="keysPressed['a'] = false">A</button>
-      <button ontouchstart="keysPressed['d'] = true" ontouchend="keysPressed['d'] = false">D</button>
-      <button ontouchstart="keysPressed['w'] = true" ontouchend="keysPressed['w'] = false">🔫</button>
+      <button id="btnA">A</button>
+      <button id="btnD">D</button>
+      <button id="btnW">🔫</button>
     </div>
     <div>
-      <button ontouchstart="keysPressed['ArrowLeft'] = true" ontouchend="keysPressed['ArrowLeft'] = false">←</button>
-      <button ontouchstart="keysPressed['ArrowRight'] = true" ontouchend="keysPressed['ArrowRight'] = false">→</button>
-      <button ontouchstart="keysPressed['ArrowUp'] = true" ontouchend="keysPressed['ArrowUp'] = false">🔫</button>
+      <button id="btnLeft">←</button>
+      <button id="btnRight">→</button>
+      <button id="btnUp">🔫</button>
     </div>
   </div>
 
   <div id="gameOverScreen" class="game-over">
     <h1 id="resultText">🏑 Oyun Bitti!</h1>
-    <button onclick="restartGame()">🔁 Yeniden Oyna</button>
+    <button id="btnRestart">🔁 Yeniden Oyna</button>
   </div>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    let popSound, winSound;
-
-    document.addEventListener('DOMContentLoaded', () => {
-      try {
-        popSound = new Audio('pop.mp3');
-        winSound = new Audio('win.mp3');
-      } catch (e) {
-        console.warn("Ses yüklenemedi: ", e);
-        popSound = { play: () => {} };
-        winSound = { play: () => {} };
-      }
-    });
-
-    let timeLeft = 60;
     const timerText = document.getElementById("timer");
 
+    let popSound, winSound;
+    try {
+      popSound = new Audio('pop.mp3');
+      winSound = new Audio('win.mp3');
+    } catch (e) {
+      console.warn("Ses yüklenemedi: ", e);
+      popSound = { play: () => {} };
+      winSound = { play: () => {} };
+    }
+
+    let timeLeft = 60;
     const players = [
       { x: 200, color: "red", keys: { left: "a", right: "d", shoot: "w" }, bullets: [], score: 0 },
       { x: 600, color: "blue", keys: { left: "ArrowLeft", right: "ArrowRight", shoot: "ArrowUp" }, bullets: [], score: 0 }
@@ -113,8 +116,8 @@
 
     const fruits = [];
     const bulletsSpeed = 6;
-    const playerY = 450;
-    const tableY = 430;
+    const playerY = canvas.height - 50;
+    const tableY = canvas.height - 70;
 
     const fruitTypes = [
       { name: "elma", color: "lime", point: 1 },
@@ -125,16 +128,62 @@
     let gameRunning = false;
     let countdownInterval;
 
+    // Tuş durumu global
+    const keysPressed = {
+      a: false,
+      d: false,
+      w: false,
+      ArrowLeft: false,
+      ArrowRight: false,
+      ArrowUp: false
+    };
+
+    // Mobil butonları dinle
+    function setupButton(id, key) {
+      const btn = document.getElementById(id);
+      btn.addEventListener("touchstart", e => { e.preventDefault(); keysPressed[key] = true; });
+      btn.addEventListener("touchend", e => { e.preventDefault(); keysPressed[key] = false; });
+      btn.addEventListener("mousedown", () => keysPressed[key] = true);
+      btn.addEventListener("mouseup", () => keysPressed[key] = false);
+      btn.addEventListener("mouseleave", () => keysPressed[key] = false);
+    }
+
+    // Butonlara dokunmatik ve fare olaylarını bağla
+    ["btnA", "btnD", "btnW", "btnLeft", "btnRight", "btnUp"].forEach((btnId, i) => {
+      const keyMap = ['a', 'd', 'w', 'ArrowLeft', 'ArrowRight', 'ArrowUp'];
+      setupButton(btnId, keyMap[i]);
+    });
+
+    // Klavye tuşları
+    document.addEventListener("keydown", e => {
+      if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = true;
+    });
+    document.addEventListener("keyup", e => {
+      if (keysPressed.hasOwnProperty(e.key)) keysPressed[e.key] = false;
+    });
+
+    // Oyun fonksiyonları:
+
     function startGame() {
       document.getElementById("mainMenu").classList.remove("active");
       document.getElementById("settingsMenu").classList.remove("active");
+      document.getElementById("gameOverScreen").classList.remove("active");
       canvas.style.display = "block";
       timerText.style.display = "block";
       gameRunning = true;
+      timeLeft = 60;
       countdown();
-      setInterval(spawnFruit, 1000);
-      setInterval(controlPlayers, 30);
+      if (spawnInterval) clearInterval(spawnInterval);
+      if (controlInterval) clearInterval(controlInterval);
+      spawnInterval = setInterval(spawnFruit, 1000);
+      controlInterval = setInterval(controlPlayers, 30);
       updateGame();
+      // skorları sıfırla
+      players.forEach(p => {
+        p.score = 0;
+        p.bullets = [];
+        p.x = p === players[0] ? 200 : 600;
+      });
     }
 
     function openSettings() {
@@ -163,7 +212,7 @@
       if (!gameRunning) return;
       const fruit = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
       const x = Math.random() * (canvas.width - 30);
-      fruits.push({ x: x, y: 50, w: 30, h: 30, type: fruit });
+      fruits.push({ x, y: 50, w: 30, h: 30, type: fruit });
     }
 
     function drawPlayers() {
@@ -242,18 +291,14 @@
       requestAnimationFrame(updateGame);
     }
 
-    const keysPressed = {};
-    document.addEventListener("keydown", e => keysPressed[e.key] = true);
-    document.addEventListener("keyup", e => keysPressed[e.key] = false);
-
     function controlPlayers() {
       if (!gameRunning) return;
-      if (keysPressed[players[0].keys.left]) players[0].x -= 4;
-      if (keysPressed[players[0].keys.right]) players[0].x += 4;
+      if (keysPressed[players[0].keys.left]) players[0].x = Math.max(0, players[0].x - 4);
+      if (keysPressed[players[0].keys.right]) players[0].x = Math.min(canvas.width - 30, players[0].x + 4);
       if (keysPressed[players[0].keys.shoot]) shoot(players[0]);
 
-      if (keysPressed[players[1].keys.left]) players[1].x -= 4;
-      if (keysPressed[players[1].keys.right]) players[1].x += 4;
+      if (keysPressed[players[1].keys.left]) players[1].x = Math.max(0, players[1].x - 4);
+      if (keysPressed[players[1].keys.right]) players[1].x = Math.min(canvas.width - 30, players[1].x + 4);
       if (keysPressed[players[1].keys.shoot]) shoot(players[1]);
     }
 
@@ -265,6 +310,7 @@
     }
 
     function countdown() {
+      clearInterval(countdownInterval);
       countdownInterval = setInterval(() => {
         timeLeft--;
         timerText.textContent = `⏱ Süre: ${timeLeft}`;
@@ -297,7 +343,16 @@
     function restartGame() {
       location.reload();
     }
+
+    // Butonlara event listener bağla
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById("btnStart").addEventListener("click", startGame);
+      document.getElementById("btnSettings").addEventListener("click", openSettings);
+      document.getElementById("btnBack").addEventListener("click", closeSettings);
+      document.getElementById("btnFullscreen").addEventListener("click", toggleFullscreen);
+      document.getElementById("btnRestart").addEventListener("click", restartGame);
+    });
+
   </script>
 </body>
 </html>
-
