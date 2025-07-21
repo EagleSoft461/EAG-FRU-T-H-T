@@ -81,9 +81,9 @@
   </div>  <div id="gameOverScreen" class="game-over">
     <h1 id="resultText">🏑 Oyun Bitti!</h1>
     <button onclick="restartGame()">🔁 Yeniden Oyna</button>
-  </div>  
-  <script>
-    const keysPressed = {};
+  </div>  <script>
+    const keysPressed = {}; // GLOBAL OLARAK TANIMLANDI
+
     document.addEventListener("DOMContentLoaded", () => {
       const canvas = document.getElementById("gameCanvas");
       canvas.width = window.innerWidth;
@@ -234,7 +234,6 @@
         requestAnimationFrame(updateGame);
       }
 
-      const keysPressed = {};
       document.addEventListener("keydown", e => keysPressed[e.key] = true);
       document.addEventListener("keyup", e => keysPressed[e.key] = false);
 
